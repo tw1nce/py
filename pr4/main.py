@@ -1,86 +1,129 @@
-import tkinter as tk
-from tkinter import messagebox
-import os
-from datetime import datetime
+class User:
+    """Класс содержащий name, login, password, grade"""
+    count = 0
 
-CURRENT = "current"
-FUTURE = "future"
-OVERDUE = "overdue"
-
-def get_task_status(due_date):
-    today = datetime.now().date()
-    if due_date == "NOW":
-        return CURRENT
-    date = datetime.strptime(due_date, "%Y-%m-%d").date()
-    if date < today:
-        return OVERDUE
-    else:
-        return FUTURE
-
-
-def read_tasks_from_file(filename):
-    tasks = []
-    if not os.path.exists(filename):
-        return tasks
-    with open(filename, encoding='utf-8') as f:
-        for line in f:
-            if ";" in line:
-                name, date_str = line.strip().split(";", 1)
-                tasks.append((name, date_str))
-    return tasks
-
-
-def sort_tasks(tasks):
-    status_order = {OVERDUE: 0, CURRENT: 1, FUTURE: 2}
-
-    def sort_key(task):
-        name, due_date = task
-        status = get_task_status(due_date)
-        if due_date == "NOW":
-            date = datetime.min.date() 
+    def __init__(self, name, login, password, grade=0):
+        if isinstance(grade, int):
+            """проверим, что grade int, иначе выдадим ошибку.
+               Остальные строки. Всё преобразуем в строку."""
+            self._name = str(name)
+            self._login = str(login)
+            self._password = str(password)
+            self._grade = grade
+            User.count += 1
         else:
-            date = datetime.strptime(due_date, "%Y-%m-%d").date()
-        return (status_order[status], date)
+            raise ValueError('grade должно быть int!')
 
-    return sorted(tasks, key=sort_key)
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, new_name):
+        self._name = str(new_name)
+
+    @property
+    def login(self):
+        return self._login
+
+    @login.setter
+    def login(self, new_login):
+        print("Невозможно изменить логин!")
+
+    @property
+    def password(self):
+        return "********"
+
+    @password.setter
+    def password(self, new_password):
+        self._password = str(new_password)
+
+    @property
+    def grade(self):
+        return "Неизвестное свойство grade!"
+
+    @grade.setter
+    def grade(self, new_grade):
+        print("Неизвестное свойство grade!")
+
+    def show_info(self):
+        print (f"Name: {self._name}, Login: {self._login}")
+
+    @classmethod
+    def verified(cls, other):
+        """"метод для проверки, является ли сравниваемый операнд объектом класса User"""
+        if not isinstance(other, User):
+            raise TypeError("Сравниваемый правый операнд должен принадлежать классу User")
+        return other
+
+    def __eq__(self, other):
+        """функция для сравнения ==.
+        Для != нет необходимости, т.к. произойдет обратное сравнение"""
+        other = self.verified(other)
+        return self._grade == other._grade
+
+    def __lt__(self, other):
+        """функция для сравнения на <.
+        Нет необходимости писать на >, т.к. произойдет
+        подмена операндов"""
+        other = self.verified(other)
+        return self._grade < other._grade
+
+    def __le__(self, other):
+        """функция для сравнения на <=.
+                Нет необходимости писать на >=, т.к. произойдет
+                подмена операндов"""
+        other = self.verified(other)
+        return self._grade <= other._grade
 
 
-def display_tasks():
-    for widget in frame.winfo_children():
-        widget.destroy()
+class SuperUser(User):
+    """класс наследник от User с атрибутом role"""
 
-    tasks = read_tasks_from_file('tasks.txt')
-    if not tasks:
-        label = tk.Label(frame, text="Нет задач для отображения.", fg="gray")
-        label.pack()
-        return
+    count = 0#Переопредлеим count для нового счётчика
 
-    tasks = sort_tasks(tasks)
+    def __init__(self, name, login, password, role, grade):
+        super().__init__(name, login, password, grade)
+        self._role = str(role)
+        SuperUser.count += 1
 
-    for task_description, due_date in tasks:
-        try:
-            status = get_task_status(due_date)
-            if status == CURRENT:
-                label = tk.Label(frame, text=f"Текущая задача: {task_description} (Срок: {due_date})", fg="orange")
-            elif status == FUTURE:
-                label = tk.Label(frame, text=f"Будущая задача: {task_description} (Срок: {due_date})", fg="green")
-            elif status == OVERDUE:
-                label = tk.Label(frame, text=f"Просроченная задача: {task_description} (Срок: {due_date})", fg="red")
-            label.pack()
-        except ValueError:
-            messagebox.showerror("Ошибка", f"Неверный формат даты для задачи: {task_description} (Срок: {due_date})")
+    @property
+    def role(self):
+        return self._role
+
+    @role.setter
+    def role(self, new_role):
+        self._role = str(new_role)
 
 
-root = tk.Tk()
-root.title("Мои задачи")
-root.geometry("400x400")
 
-frame = tk.Frame(root)
-frame.pack(pady=10)
 
-button = tk.Button(root, text="Показать задачи", command=display_tasks)
-button.pack(pady=10)
+user1 = User('Paul McCartney', 'paul', '1234', 3)
+user2 = User('George Harrison', 'george', '5678', 2)
+user3 = User('Richard Starkey', 'ringo', '8523', 3)
+admin = SuperUser('John Lennon', 'john', '0000', 'admin', 5)
 
-display_tasks()
+user1.show_info()
+admin.show_info()
+print()
+users = User.count
+admins = SuperUser.count
 
-root.mainloop()
+print(f'Всего обычных пользователей: {users}')
+print(f'Всего супер-пользователей: {admins}\n')
+
+print(user1 < user2)
+print(admin > user3)
+print(user1 == user3,"\n")
+
+user3.name = 'Ringo Star'
+user1.password = 'Pa$$w0rd'
+
+print(user3.name)
+print(user2.password)
+print(user2.login)
+
+user2.login = 'geo'
+
+print(user1.grade)
+admin.grade = 10
